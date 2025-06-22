@@ -99,12 +99,12 @@ function syncStatusFiles() {
 
   // Criar um mapa para evitar duplicatas por ID
   const empresasMap = new Map();
-  
+
   // Adicionar empresas da base unificada
   db.empresas.forEach(empresa => {
     empresasMap.set(empresa.id.toString(), empresa);
   });
-  
+
   // Adicionar empresas do sprint02, sem sobrescrever se já existir
   sprint02Empresas.forEach(empresa => {
     if (!empresasMap.has(empresa.id.toString())) {
@@ -152,12 +152,12 @@ app.get('/api/empresas', (req, res) => {
 
   // Criar um mapa para evitar duplicatas por ID
   const empresasMap = new Map();
-  
+
   // Adicionar empresas da base unificada
   db.empresas.forEach(empresa => {
     empresasMap.set(empresa.id.toString(), empresa);
   });
-  
+
   // Adicionar empresas do sprint02, sem sobrescrever se já existir
   sprint02Empresas.forEach(empresa => {
     if (!empresasMap.has(empresa.id.toString())) {
@@ -323,7 +323,7 @@ app.put('/api/empresas/:id/status', (req, res) => {
     saveSprint02Empresas(empresasSprint02);
   }
 
-  // Sincronizar arquivos por status
+  // Atualizar arquivos de status
   syncStatusFiles();
 
   res.json({ message: `Empresa ${status} com sucesso` });
@@ -416,7 +416,7 @@ app.post('/api/usuarios', (req, res) => {
 app.get('/api/avaliacoes/empresa/:empresaId', (req, res) => {
   const { empresaId } = req.params;
   const db = loadUnifiedDB();
-  
+
   const avaliacoes = db.avaliacoes.filter(a => a.empresaId === empresaId);
   res.json(avaliacoes);
 });
@@ -443,7 +443,7 @@ app.post('/api/avaliacoes', (req, res) => {
 app.get('/api/favoritos/:usuarioEmail', (req, res) => {
   const { usuarioEmail } = req.params;
   const db = loadUnifiedDB();
-  
+
   const usuario = db.usuarios.find(u => u.email === usuarioEmail);
   if (!usuario) {
     return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -462,7 +462,7 @@ app.get('/api/favoritos/:usuarioEmail', (req, res) => {
 app.post('/api/favoritos/:usuarioEmail/:empresaId', (req, res) => {
   const { usuarioEmail, empresaId } = req.params;
   const db = loadUnifiedDB();
-  
+
   const usuario = db.usuarios.find(u => u.email === usuarioEmail);
   if (!usuario) {
     return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -485,7 +485,7 @@ app.post('/api/favoritos/:usuarioEmail/:empresaId', (req, res) => {
 app.delete('/api/favoritos/:usuarioEmail/:empresaId', (req, res) => {
   const { usuarioEmail, empresaId } = req.params;
   const db = loadUnifiedDB();
-  
+
   const usuario = db.usuarios.find(u => u.email === usuarioEmail);
   if (!usuario) {
     return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -500,13 +500,163 @@ app.delete('/api/favoritos/:usuarioEmail/:empresaId', (req, res) => {
   }
 });
 
+// Função para escrever empresas no arquivo
+function writeEmpresas(empresas) {
+    fs.writeFileSync(SPRINT02_EMPRESAS_FILE, JSON.stringify(empresas, null, 2));
+}
+
+// Função para ler empresas do arquivo
+function readEmpresas() {
+    if (fs.existsSync(SPRINT02_EMPRESAS_FILE)) {
+        const content = fs.readFileSync(SPRINT02_EMPRESAS_FILE, 'utf8');
+        return JSON.parse(content || '[]');
+    }
+    return [];
+}
+
+// Função para atualizar arquivos de status
+function updateStatusFiles() {
+    try {
+        const empresas = readEmpresas();
+
+        // Separar por status
+        const aprovadas = empresas.filter(e => e.status === 'aprovada' || e.status === 'aprovado');
+        const pendentes = empresas.filter(e => e.status === 'pendente');
+        const rejeitadas = empresas.filter(e => e.status === 'rejeitada' || e.status === 'rejeitado');
+
+        // Atualizar arquivos
+        saveAprovados(aprovadas);
+        savePendentes(pendentes);
+        saveRejeitados(rejeitadas);
+
+        // Atualizar unified_db.json
+        const db = loadUnifiedDB();
+        db.empresas = empresas;
+        saveUnifiedDB(db);
+
+        console.log('Arquivos de status atualizados com sucesso');
+    } catch (error) {
+        console.error('Erro ao atualizar arquivos de status:', error);
+    }
+}
+
+// Endpoint para buscar empresas por email do responsável
+app.get('/api/empresas/usuario/:email', (req, res) => {
+    const { email } = req.params;
+    const db = loadUnifiedDB();
+    const sprint02Empresas = loadSprint02Empresas();
+
+    // Criar um mapa para evitar duplicatas por ID
+    const empresasMap = new Map();
+
+    // Buscar nas duas bases
+    const empresasUnificadas = db.empresas.filter(e => 
+      e.responsavel?.email === email || e.responsavelEmail === email
+    );
+  
+    const empresasSprint02Filtradas = sprint02Empresas.filter(e => 
+      e.responsavelEmail === email
+    );
+  
+    // Adicionar empresas evitando duplicatas
+    empresasUnificadas.forEach(empresa => {
+      empresasMap.set(empresa.id.toString(), empresa);
+    });
+  
+    empresasSprint02Filtradas.forEach(empresa => {
+      if (!empresasMap.has(empresa.id.toString())) {
+        empresasMap.set(empresa.id.toString(), empresa);
+      }
+    });
+  
+    const todasEmpresas = Array.from(empresasMap.values());
+    res.json(todasEmpresas);
+});
+
+// Endpoint para atualizar empresa
+app.put('/api/empresas/:id', (req, res) => {
+    const { id } = req.params;
+    const dadosAtualizados = req.body;
+  
+    // Garante que o status seja pendente
+    dadosAtualizados.status = 'pendente';
+  
+    try {
+        // Atualizar na base unificada
+        const db = loadUnifiedDB();
+        const empresaIndex = db.empresas.findIndex(e => e.id === id);
+  
+        if (empresaIndex === -1) {
+            return res.status(404).json({ error: 'Empresa não encontrada' });
+        }
+  
+        // Preservar ID e data de cadastro
+        dadosAtualizados.id = db.empresas[empresaIndex].id;
+        dadosAtualizados.dataCadastro = db.empresas[empresaIndex].dataCadastro;
+        dadosAtualizados.dataAtualizacao = new Date().toISOString();
+  
+        db.empresas[empresaIndex] = { ...db.empresas[empresaIndex], ...dadosAtualizados };
+        saveUnifiedDB(db);
+  
+        // Atualizar no sprint02
+        const empresasSprint02 = loadSprint02Empresas();
+        const sprint02Index = empresasSprint02.findIndex(e => e.id == id);
+  
+        if (sprint02Index !== -1) {
+            empresasSprint02[sprint02Index] = { ...empresasSprint02[sprint02Index], ...dadosAtualizados };
+            saveSprint02Empresas(empresasSprint02);
+        }
+  
+        // Atualizar arquivos de status
+        syncStatusFiles();
+  
+        res.json({ message: 'Empresa atualizada com sucesso', empresa: db.empresas[empresaIndex] });
+    } catch (error) {
+        console.error('Erro ao atualizar empresa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Endpoint para excluir empresa
+app.delete('/api/empresas/:id', (req, res) => {
+    const { id } = req.params;
+  
+    try {
+        // Remover da base unificada
+        const db = loadUnifiedDB();
+        const empresaIndex = db.empresas.findIndex(e => e.id === id);
+  
+        if (empresaIndex !== -1) {
+            db.empresas.splice(empresaIndex, 1);
+            saveUnifiedDB(db);
+        }
+  
+        // Remover do sprint02
+        const empresasSprint02 = loadSprint02Empresas();
+        const sprint02Index = empresasSprint02.findIndex(e => e.id == id);
+  
+        if (sprint02Index !== -1) {
+            empresasSprint02.splice(sprint02Index, 1);
+            saveSprint02Empresas(empresasSprint02);
+        }
+  
+        // Atualizar arquivos de status
+        syncStatusFiles();
+  
+        res.json({ message: 'Empresa excluída com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir empresa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // Inicializar servidor
 app.listen(PORT, '0.0.0.0', () => {
   const db = loadUnifiedDB();
-  
+
   // Sincronizar arquivos por status na inicialização
   syncStatusFiles();
-  
+
   console.log('Base de dados unificada carregada com sucesso!');
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log('Acesse através do webview do Replit');

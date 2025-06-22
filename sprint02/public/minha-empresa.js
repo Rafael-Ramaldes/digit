@@ -1,9 +1,14 @@
+
 $(document).ready(function() {
     console.log("Carregando dados da empresa...");
+    
+    let empresaAtual = null; // Armazenar dados da empresa atual
 
     // Função para preencher o formulário
     function preencherFormulario(empresa) {
         console.log("Dados recebidos:", empresa);
+        
+        empresaAtual = empresa; // Salvar referência da empresa
         
         // Dados básicos
         $("#razaoSocial").text(empresa.razaoSocial || "Não informado");
@@ -34,6 +39,33 @@ $(document).ready(function() {
 
         // Observações
         $("#observacoes").val(empresa.observacoes || "");
+    }
+
+    // Função para preencher modal de edição
+    function preencherModalEdicao(empresa) {
+        const endereco = empresa.endereco || empresa;
+        
+        $("#edit-razaoSocial").val(empresa.razaoSocial || "");
+        $("#edit-nomeFantasia").val(empresa.nomeFantasia || "");
+        $("#edit-cnpj").val(empresa.cnpj || "");
+        $("#edit-segmento").val(empresa.segmento || "");
+        $("#edit-estado").val(endereco.estado || endereco.uf || "");
+        $("#edit-cidade").val(endereco.cidade || "");
+        $("#edit-rua").val(endereco.rua || endereco.logradouro || "");
+        $("#edit-cep").val(endereco.cep || "");
+        $("#edit-responsavelNome").val(empresa.responsavelNome || empresa.nomeResponsavel || "");
+        $("#edit-responsavelCargo").val(empresa.responsavelCargo || empresa.cargoResponsavel || "");
+        $("#edit-responsavelEmail").val(empresa.responsavelEmail || empresa.emailResponsavel || "");
+        $("#edit-responsavelTelefone").val(empresa.responsavelTelefone || empresa.telefoneResponsavel || "");
+        $("#edit-observacoes").val(empresa.observacoes || "");
+        
+        // Serviços de interesse
+        $('input[name="servicosInteresse"]').prop('checked', false);
+        if (empresa.servicosInteresse) {
+            empresa.servicosInteresse.forEach(servico => {
+                $(`#edit-servico${servico.charAt(0).toUpperCase() + servico.slice(1)}`).prop("checked", true);
+            });
+        }
     }
 
     // Carrega os dados da empresa do usuário logado
@@ -74,12 +106,109 @@ $(document).ready(function() {
         });
     }
 
+    // Função para excluir empresa
+    function excluirEmpresa() {
+        if (!empresaAtual) {
+            alert("Nenhuma empresa para excluir.");
+            return;
+        }
+
+        $.ajax({
+            url: `/api/empresas/${empresaAtual.id}`,
+            method: 'DELETE',
+            success: function(response) {
+                alert("Empresa excluída com sucesso!");
+                window.location.href = 'index.html';
+            },
+            error: function(xhr, status, error) {
+                console.error("Erro ao excluir empresa:", status, error);
+                alert("Erro ao excluir empresa. Tente novamente.");
+            }
+        });
+    }
+
+    // Função para salvar edições
+    function salvarEdicao() {
+        if (!empresaAtual) {
+            alert("Nenhuma empresa para editar.");
+            return;
+        }
+
+        // Coletar dados do formulário
+        const dadosAtualizados = {
+            razaoSocial: $("#edit-razaoSocial").val(),
+            nomeFantasia: $("#edit-nomeFantasia").val(),
+            cnpj: $("#edit-cnpj").val(),
+            segmento: $("#edit-segmento").val(),
+            responsavelNome: $("#edit-responsavelNome").val(),
+            responsavelCargo: $("#edit-responsavelCargo").val(),
+            responsavelEmail: $("#edit-responsavelEmail").val(),
+            responsavelTelefone: $("#edit-responsavelTelefone").val(),
+            observacoes: $("#edit-observacoes").val(),
+            endereco: {
+                estado: $("#edit-estado").val(),
+                cidade: $("#edit-cidade").val(),
+                rua: $("#edit-rua").val(),
+                cep: $("#edit-cep").val()
+            },
+            servicosInteresse: [],
+            status: 'pendente' // Status volta para pendente após edição
+        };
+
+        // Coletar serviços selecionados
+        $('input[name="servicosInteresse"]:checked').each(function() {
+            dadosAtualizados.servicosInteresse.push($(this).val());
+        });
+
+        $.ajax({
+            url: `/api/empresas/${empresaAtual.id}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(dadosAtualizados),
+            success: function(response) {
+                alert("Empresa atualizada com sucesso! O status foi alterado para 'pendente' e aguarda nova aprovação.");
+                $('#modalEdicao').modal('hide');
+                carregarDadosEmpresa(); // Recarregar dados
+            },
+            error: function(xhr, status, error) {
+                console.error("Erro ao atualizar empresa:", status, error);
+                alert("Erro ao atualizar empresa. Tente novamente.");
+            }
+        });
+    }
+
+    // Event Listeners
+    $("#btn-editar").on("click", function() {
+        if (empresaAtual) {
+            preencherModalEdicao(empresaAtual);
+            $('#modalEdicao').modal('show');
+        } else {
+            alert("Carregue os dados da empresa primeiro.");
+        }
+    });
+
+    $("#btn-excluir").on("click", function() {
+        if (empresaAtual) {
+            $('#modalConfirmacao').modal('show');
+        } else {
+            alert("Carregue os dados da empresa primeiro.");
+        }
+    });
+
+    $("#confirmar-exclusao").on("click", function() {
+        $('#modalConfirmacao').modal('hide');
+        excluirEmpresa();
+    });
+
+    $("#salvar-edicao").on("click", function() {
+        // Validar formulário
+        if ($("#form-edicao")[0].checkValidity()) {
+            salvarEdicao();
+        } else {
+            $("#form-edicao")[0].reportValidity();
+        }
+    });
+
     // Inicia o carregamento dos dados
     carregarDadosEmpresa();
-
-    // Editar
-    $("#empresaForm").on("submit", function(e) {
-        e.preventDefault();
-        alert("A edição dos dados da empresa ainda não está implementada.");
-    });
 });
