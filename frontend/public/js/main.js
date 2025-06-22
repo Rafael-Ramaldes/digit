@@ -875,13 +875,156 @@ class DigitalizeApp {
                         ` : ''}
 
                         <div class="form-actions">
-                            <p class="text-muted">Cada usuário pode cadastrar apenas uma empresa.</p>
+                            <button type="button" id="btn-editar" class="btn btn-primary me-2">
+                                📝 Editar Informações
+                            </button>
+                            <button type="button" id="btn-excluir" class="btn btn-danger">
+                                🗑️ Excluir Empresa
+                            </button>
+                            <p class="text-muted mt-3">Cada usuário pode cadastrar apenas uma empresa.</p>
+                        </div>
+                    </div>
+                `;
+
+                // Adicionar modais para edição e confirmação
+                dadosDiv.innerHTML += `
+                    <!-- Modal de confirmação de exclusão -->
+                    <div class="modal" id="modalConfirmacao" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                        <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 8px;">
+                            <h3>Confirmar Exclusão</h3>
+                            <p>Tem certeza que deseja excluir permanentemente os dados da sua empresa?</p>
+                            <p style="color: red;"><strong>Esta ação não pode ser desfeita!</strong></p>
+                            <div style="text-align: right; margin-top: 20px;">
+                                <button type="button" class="btn btn-secondary me-2" onclick="document.getElementById('modalConfirmacao').style.display='none'">Cancelar</button>
+                                <button type="button" id="confirmar-exclusao" class="btn btn-danger">Confirmar Exclusão</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal de edição -->
+                    <div class="modal" id="modalEdicao" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+                        <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 800px; border-radius: 8px;">
+                            <h3>Editar Informações da Empresa</h3>
+                            <form id="form-edicao">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                    <div>
+                                        <label class="form-label">Razão Social *</label>
+                                        <input type="text" class="form-control" id="edit-razaoSocial" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Nome Fantasia *</label>
+                                        <input type="text" class="form-control" id="edit-nomeFantasia" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">CNPJ *</label>
+                                        <input type="text" class="form-control" id="edit-cnpj" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Segmento *</label>
+                                        <select class="form-control" id="edit-segmento" required>
+                                            <option value="">Selecione um segmento</option>
+                                            <option value="Tecnologia">Tecnologia</option>
+                                            <option value="Serviços">Serviços</option>
+                                            <option value="Comércio">Comércio</option>
+                                            <option value="Indústria">Indústria</option>
+                                            <option value="Saúde">Saúde</option>
+                                            <option value="Educação">Educação</option>
+                                            <option value="Outros">Outros</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">CEP *</label>
+                                        <input type="text" class="form-control" id="edit-cep" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Rua *</label>
+                                        <input type="text" class="form-control" id="edit-rua" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Cidade *</label>
+                                        <input type="text" class="form-control" id="edit-cidade" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Estado *</label>
+                                        <select class="form-control" id="edit-estado" required>
+                                            <option value="">Selecione um estado</option>
+                                            <option value="AC">Acre</option>
+                                            <option value="AL">Alagoas</option>
+                                            <option value="AP">Amapá</option>
+                                            <option value="AM">Amazonas</option>
+                                            <option value="BA">Bahia</option>
+                                            <option value="CE">Ceará</option>
+                                            <option value="DF">Distrito Federal</option>
+                                            <option value="ES">Espírito Santo</option>
+                                            <option value="GO">Goiás</option>
+                                            <option value="MA">Maranhão</option>
+                                            <option value="MT">Mato Grosso</option>
+                                            <option value="MS">Mato Grosso do Sul</option>
+                                            <option value="MG">Minas Gerais</option>
+                                            <option value="PA">Pará</option>
+                                            <option value="PB">Paraíba</option>
+                                            <option value="PR">Paraná</option>
+                                            <option value="PE">Pernambuco</option>
+                                            <option value="PI">Piauí</option>
+                                            <option value="RJ">Rio de Janeiro</option>
+                                            <option value="RN">Rio Grande do Norte</option>
+                                            <option value="RS">Rio Grande do Sul</option>
+                                            <option value="RO">Rondônia</option>
+                                            <option value="RR">Roraima</option>
+                                            <option value="SC">Santa Catarina</option>
+                                            <option value="SP">São Paulo</option>
+                                            <option value="SE">Sergipe</option>
+                                            <option value="TO">Tocantins</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Nome do Responsável *</label>
+                                        <input type="text" class="form-control" id="edit-responsavelNome" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Cargo</label>
+                                        <input type="text" class="form-control" id="edit-responsavelCargo">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Email *</label>
+                                        <input type="email" class="form-control" id="edit-responsavelEmail" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Telefone *</label>
+                                        <input type="tel" class="form-control" id="edit-responsavelTelefone" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Serviços de Interesse</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                        <label><input type="checkbox" name="servicosInteresse" value="site"> Desenvolvimento de Site</label>
+                                        <label><input type="checkbox" name="servicosInteresse" value="marketing"> Marketing Digital</label>
+                                        <label><input type="checkbox" name="servicosInteresse" value="seo"> SEO</label>
+                                        <label><input type="checkbox" name="servicosInteresse" value="redes"> Redes Sociais</label>
+                                        <label><input type="checkbox" name="servicosInteresse" value="sistema"> Sistema Web</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Observações</label>
+                                    <textarea class="form-control" id="edit-observacoes" rows="3"></textarea>
+                                </div>
+                                
+                                <div style="text-align: right;">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="document.getElementById('modalEdicao').style.display='none'">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 `;
 
                 loadingDiv.classList.add('hidden');
                 dadosDiv.classList.remove('hidden');
+
+                // Configurar event listeners após renderizar
+                this.setupMinhaEmpresaEventListeners(empresa);
             } else {
                 loadingDiv.innerHTML = `
                     <div class="text-center">
@@ -894,6 +1037,149 @@ class DigitalizeApp {
         } catch (error) {
             console.error('Erro ao carregar empresa:', error);
             document.getElementById('empresa-loading').innerHTML = '<p>Erro ao carregar dados da empresa.</p>';
+        }
+    }
+
+    setupMinhaEmpresaEventListeners(empresa) {
+        const btnEditar = document.getElementById('btn-editar');
+        const btnExcluir = document.getElementById('btn-excluir');
+        const confirmarExclusao = document.getElementById('confirmar-exclusao');
+        const formEdicao = document.getElementById('form-edicao');
+
+        if (btnEditar) {
+            btnEditar.addEventListener('click', () => {
+                this.preencherModalEdicao(empresa);
+                document.getElementById('modalEdicao').style.display = 'block';
+            });
+        }
+
+        if (btnExcluir) {
+            btnExcluir.addEventListener('click', () => {
+                document.getElementById('modalConfirmacao').style.display = 'block';
+            });
+        }
+
+        if (confirmarExclusao) {
+            confirmarExclusao.addEventListener('click', () => {
+                this.excluirEmpresa(empresa.id);
+            });
+        }
+
+        if (formEdicao) {
+            formEdicao.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.salvarEdicaoEmpresa(empresa.id);
+            });
+        }
+    }
+
+    preencherModalEdicao(empresa) {
+        const endereco = empresa.endereco || {};
+        
+        document.getElementById('edit-razaoSocial').value = empresa.razaoSocial || '';
+        document.getElementById('edit-nomeFantasia').value = empresa.nomeFantasia || '';
+        document.getElementById('edit-cnpj').value = empresa.cnpj || '';
+        document.getElementById('edit-segmento').value = empresa.segmento || '';
+        document.getElementById('edit-cep').value = endereco.cep || '';
+        document.getElementById('edit-rua').value = endereco.rua || endereco.logradouro || '';
+        document.getElementById('edit-cidade').value = endereco.cidade || '';
+        document.getElementById('edit-estado').value = endereco.estado || endereco.uf || '';
+        document.getElementById('edit-responsavelNome').value = empresa.responsavelNome || empresa.responsavel?.nome || '';
+        document.getElementById('edit-responsavelCargo').value = empresa.responsavelCargo || empresa.responsavel?.cargo || '';
+        document.getElementById('edit-responsavelEmail').value = empresa.responsavelEmail || empresa.responsavel?.email || '';
+        document.getElementById('edit-responsavelTelefone').value = empresa.responsavelTelefone || empresa.responsavel?.telefone || '';
+        document.getElementById('edit-observacoes').value = empresa.observacoes || '';
+
+        // Serviços de interesse
+        document.querySelectorAll('input[name="servicosInteresse"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        if (empresa.servicosInteresse) {
+            empresa.servicosInteresse.forEach(servico => {
+                const checkbox = document.querySelector(`input[name="servicosInteresse"][value="${servico}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+    }
+
+    async salvarEdicaoEmpresa(empresaId) {
+        const dadosAtualizados = {
+            razaoSocial: document.getElementById('edit-razaoSocial').value,
+            nomeFantasia: document.getElementById('edit-nomeFantasia').value,
+            cnpj: document.getElementById('edit-cnpj').value,
+            segmento: document.getElementById('edit-segmento').value,
+            endereco: {
+                cep: document.getElementById('edit-cep').value,
+                rua: document.getElementById('edit-rua').value,
+                cidade: document.getElementById('edit-cidade').value,
+                estado: document.getElementById('edit-estado').value
+            },
+            responsavelNome: document.getElementById('edit-responsavelNome').value,
+            responsavelCargo: document.getElementById('edit-responsavelCargo').value,
+            responsavelEmail: document.getElementById('edit-responsavelEmail').value,
+            responsavelTelefone: document.getElementById('edit-responsavelTelefone').value,
+            observacoes: document.getElementById('edit-observacoes').value,
+            servicosInteresse: []
+        };
+
+        // Coletar serviços selecionados
+        document.querySelectorAll('input[name="servicosInteresse"]:checked').forEach(checkbox => {
+            dadosAtualizados.servicosInteresse.push(checkbox.value);
+        });
+
+        try {
+            const response = await fetch(`/api/empresas/${empresaId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dadosAtualizados)
+            });
+
+            if (response.ok) {
+                this.showMessage('Empresa atualizada com sucesso! O status foi alterado para "pendente" e aguarda nova aprovação.', 'success');
+                document.getElementById('modalEdicao').style.display = 'none';
+                
+                // Recarregar dados da empresa
+                await this.loadData();
+                this.loadEmpresaDoUsuario();
+            } else {
+                const errorData = await response.json();
+                this.showMessage(`Erro ao atualizar empresa: ${errorData.error || response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar empresa:', error);
+            this.showMessage('Erro de conexão ao atualizar empresa.', 'error');
+        }
+    }
+
+    async excluirEmpresa(empresaId) {
+        try {
+            const response = await fetch(`/api/empresas/${empresaId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                this.showMessage('Empresa excluída com sucesso!', 'success');
+                document.getElementById('modalConfirmacao').style.display = 'none';
+                
+                // Recarregar dados e redirecionar
+                await this.loadData();
+                this.updateNavigation();
+                
+                setTimeout(() => {
+                    this.navigateTo('home');
+                }, 2000);
+            } else {
+                const errorData = await response.json();
+                this.showMessage(`Erro ao excluir empresa: ${errorData.error || response.statusText}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir empresa:', error);
+            this.showMessage('Erro de conexão ao excluir empresa.', 'error');
         }
     }
 
